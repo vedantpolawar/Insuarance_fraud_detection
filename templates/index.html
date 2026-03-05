@@ -1,0 +1,1007 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FraudSentinel — Insurance Claim Analysis</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #080c14;
+        --surface: #0d1520;
+        --surface2: #111d2e;
+        --border: #1e3048;
+        --accent: #00c896;
+        --accent2: #ff4d6d;
+        --accent3: #f5a623;
+        --text: #e8f0fe;
+        --muted: #5a7a9a;
+        --glow: rgba(0, 200, 150, 0.15);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "DM Mono", monospace;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      /* Grid background */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(0, 200, 150, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 200, 150, 0.03) 1px, transparent 1px);
+        background-size: 40px 40px;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 24px;
+        position: relative;
+        z-index: 1;
+      }
+
+      /* Header */
+      header {
+        padding: 32px 0 24px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .logo-icon {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, var(--accent), #00a87a);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        box-shadow: 0 0 20px rgba(0, 200, 150, 0.3);
+      }
+
+      .logo-text {
+        font-family: "Syne", sans-serif;
+        font-weight: 800;
+        font-size: 22px;
+        letter-spacing: -0.5px;
+      }
+
+      .logo-text span {
+        color: var(--accent);
+      }
+
+      .badge {
+        font-size: 11px;
+        padding: 4px 10px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        color: var(--muted);
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+
+      /* Hero */
+      .hero {
+        padding: 48px 0 40px;
+        text-align: center;
+      }
+
+      .hero h1 {
+        font-family: "Syne", sans-serif;
+        font-weight: 800;
+        font-size: clamp(32px, 5vw, 54px);
+        line-height: 1.1;
+        margin-bottom: 16px;
+        background: linear-gradient(135deg, #e8f0fe 0%, var(--accent) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .hero p {
+        color: var(--muted);
+        font-size: 15px;
+        max-width: 500px;
+        margin: 0 auto;
+        line-height: 1.6;
+      }
+
+      /* Stats bar */
+      .stats-bar {
+        display: flex;
+        gap: 2px;
+        margin: 32px 0;
+        background: var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      .stat {
+        flex: 1;
+        background: var(--surface);
+        padding: 18px;
+        text-align: center;
+        transition: background 0.2s;
+      }
+
+      .stat:hover {
+        background: var(--surface2);
+      }
+
+      .stat-val {
+        font-family: "Syne", sans-serif;
+        font-weight: 700;
+        font-size: 22px;
+        color: var(--accent);
+      }
+
+      .stat-label {
+        font-size: 10px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-top: 4px;
+      }
+
+      /* Form grid */
+      .form-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+        margin-bottom: 24px;
+      }
+
+      .section-header {
+        padding: 16px 24px;
+        background: var(--surface2);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .section-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 8px var(--accent);
+      }
+
+      .section-title {
+        font-family: "Syne", sans-serif;
+        font-weight: 700;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--text);
+      }
+
+      .section-count {
+        margin-left: auto;
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 1px;
+        background: var(--border);
+      }
+
+      .field {
+        background: var(--surface);
+        padding: 18px 20px;
+        transition: background 0.15s;
+      }
+
+      .field:hover {
+        background: var(--surface2);
+      }
+
+      .field label {
+        display: block;
+        font-size: 10px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+      }
+
+      .field input,
+      .field select {
+        width: 100%;
+        background: transparent;
+        border: none;
+        border-bottom: 1px solid var(--border);
+        color: var(--text);
+        font-family: "DM Mono", monospace;
+        font-size: 14px;
+        padding: 4px 0;
+        outline: none;
+        transition: border-color 0.2s;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      .field select {
+        cursor: pointer;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235a7a9a'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 4px center;
+        padding-right: 20px;
+      }
+
+      .field select option {
+        background: #0d1520;
+        color: var(--text);
+      }
+
+      .field input:focus,
+      .field select:focus {
+        border-bottom-color: var(--accent);
+      }
+
+      /* Analyze button */
+      .analyze-wrap {
+        text-align: center;
+        padding: 32px 0 40px;
+      }
+
+      .btn-analyze {
+        font-family: "Syne", sans-serif;
+        font-weight: 700;
+        font-size: 16px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: var(--bg);
+        background: linear-gradient(135deg, var(--accent), #00a87a);
+        border: none;
+        border-radius: 12px;
+        padding: 18px 56px;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 0 30px rgba(0, 200, 150, 0.3);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .btn-analyze::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.1),
+          transparent
+        );
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+
+      .btn-analyze:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 40px rgba(0, 200, 150, 0.4);
+      }
+      .btn-analyze:hover::after {
+        opacity: 1;
+      }
+      .btn-analyze:active {
+        transform: translateY(0);
+      }
+      .btn-analyze:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      /* Loading */
+      .loading {
+        display: none;
+        align-items: center;
+        gap: 10px;
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 16px;
+        justify-content: center;
+      }
+
+      .loading.active {
+        display: flex;
+      }
+
+      .spinner {
+        width: 18px;
+        height: 18px;
+        border: 2px solid var(--border);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Result panel */
+      #result-panel {
+        display: none;
+        margin-bottom: 48px;
+        animation: slideUp 0.4s ease;
+      }
+
+      #result-panel.visible {
+        display: block;
+      }
+
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .result-card {
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+      }
+
+      .result-header {
+        padding: 28px 32px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+
+      .result-header.fraud {
+        background: linear-gradient(
+          135deg,
+          rgba(255, 77, 109, 0.15),
+          rgba(255, 77, 109, 0.05)
+        );
+        border-bottom: 1px solid rgba(255, 77, 109, 0.3);
+      }
+      .result-header.legit {
+        background: linear-gradient(
+          135deg,
+          rgba(0, 200, 150, 0.15),
+          rgba(0, 200, 150, 0.05)
+        );
+        border-bottom: 1px solid rgba(0, 200, 150, 0.3);
+      }
+
+      .result-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        flex-shrink: 0;
+      }
+
+      .result-icon.fraud {
+        background: rgba(255, 77, 109, 0.2);
+        box-shadow: 0 0 30px rgba(255, 77, 109, 0.3);
+      }
+      .result-icon.legit {
+        background: rgba(0, 200, 150, 0.2);
+        box-shadow: 0 0 30px rgba(0, 200, 150, 0.3);
+      }
+
+      .result-verdict {
+        font-family: "Syne", sans-serif;
+        font-weight: 800;
+        font-size: 28px;
+      }
+
+      .result-verdict.fraud {
+        color: var(--accent2);
+      }
+      .result-verdict.legit {
+        color: var(--accent);
+      }
+
+      .result-sub {
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 4px;
+      }
+
+      /* Score gauges */
+      .result-metrics {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1px;
+        background: var(--border);
+      }
+
+      .metric-box {
+        background: var(--surface);
+        padding: 24px 28px;
+      }
+
+      .metric-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--muted);
+        margin-bottom: 12px;
+      }
+
+      .metric-value {
+        font-family: "Syne", sans-serif;
+        font-weight: 700;
+        font-size: 36px;
+      }
+
+      .metric-value.fraud {
+        color: var(--accent2);
+      }
+      .metric-value.legit {
+        color: var(--accent);
+      }
+      .metric-value.neutral {
+        color: var(--accent3);
+      }
+
+      .gauge-bar {
+        height: 6px;
+        background: var(--border);
+        border-radius: 3px;
+        margin-top: 12px;
+        overflow: hidden;
+      }
+
+      .gauge-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .gauge-fill.fraud {
+        background: linear-gradient(90deg, var(--accent3), var(--accent2));
+      }
+      .gauge-fill.legit {
+        background: linear-gradient(90deg, #00a87a, var(--accent));
+      }
+
+      /* Error */
+      .error-msg {
+        display: none;
+        background: rgba(255, 77, 109, 0.1);
+        border: 1px solid rgba(255, 77, 109, 0.3);
+        border-radius: 12px;
+        padding: 16px 20px;
+        color: var(--accent2);
+        font-size: 13px;
+        margin-top: 16px;
+      }
+
+      .error-msg.visible {
+        display: block;
+      }
+
+      /* Footer */
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 24px 0;
+        text-align: center;
+        color: var(--muted);
+        font-size: 11px;
+        letter-spacing: 0.5px;
+      }
+
+      /* Tooltip */
+      .required-note {
+        font-size: 11px;
+        color: var(--muted);
+        margin-bottom: 24px;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div class="logo">
+          <div class="logo-icon">🛡️</div>
+          <div class="logo-text">Fraud <span>Analysis</span></div>
+        </div>
+        <div class="badge">ML-Powered · v1.0</div>
+      </header>
+
+      <div class="hero">
+        <h1>Insurance Fraud<br />Detection System</h1>
+        <p>
+          Submit claim details to receive an instant AI-powered risk assessment
+          using logistic regression trained on historical claim patterns.
+        </p>
+      </div>
+
+      <div class="stats-bar">
+        <div class="stat">
+          <div class="stat-val">73%</div>
+          <div class="stat-label">Model Accuracy</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">54</div>
+          <div class="stat-label">Input Features</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">25</div>
+          <div class="stat-label">Form Fields</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">&lt;100ms</div>
+          <div class="stat-label">Inference Time</div>
+        </div>
+      </div>
+
+      <form id="fraud-form">
+        <!-- Policy Information -->
+        <div class="form-card">
+          <div class="section-header">
+            <div class="section-dot"></div>
+            <div class="section-title">Policy Information</div>
+            <div class="section-count">5 fields</div>
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Months as Customer</label>
+              <input
+                type="number"
+                name="months_as_customer"
+                min="1"
+                max="500"
+                value="120"
+                required
+              />
+            </div>
+            <div class="field">
+              <label>Customer Age</label>
+              <input
+                type="number"
+                name="age"
+                min="18"
+                max="90"
+                value="35"
+                required
+              />
+            </div>
+            <div class="field">
+              <label>Policy Deductable ($)</label>
+              <select name="policy_deductable" required>
+                <option value="500">500</option>
+                <option value="1000" selected>1000</option>
+                <option value="2000">2000</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Policy CSL</label>
+              <select name="policy_csl" required>
+                <option value="100/300">100/300</option>
+                <option value="250/500" selected>250/500</option>
+                <option value="500/1000">500/1000</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Umbrella Limit ($)</label>
+              <input
+                type="number"
+                name="umbrella_limit"
+                value="0"
+                step="1000000"
+                required
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Insured Person -->
+        <div class="form-card">
+          <div class="section-header">
+            <div
+              class="section-dot"
+              style="background: #a78bfa; box-shadow: 0 0 8px #a78bfa"
+            ></div>
+            <div class="section-title">Insured Person</div>
+            <div class="section-count">5 fields</div>
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Sex</label>
+              <select name="insured_sex" required>
+                <option value="FEMALE">Female</option>
+                <option value="MALE" selected>Male</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Education Level</label>
+              <select name="insured_education_level" required>
+                <option value="Associate">Associate</option>
+                <option value="College" selected>College</option>
+                <option value="High School">High School</option>
+                <option value="JD">JD</option>
+                <option value="MD">MD</option>
+                <option value="Masters">Masters</option>
+                <option value="PhD">PhD</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Occupation</label>
+              <select name="insured_occupation" required>
+                <option value="adm-clerical" selected>Adm-Clerical</option>
+                <option value="armed-forces">Armed Forces</option>
+                <option value="craft-repair">Craft-Repair</option>
+                <option value="exec-managerial">Exec-Managerial</option>
+                <option value="farming-fishing">Farming-Fishing</option>
+                <option value="handlers-cleaners">Handlers-Cleaners</option>
+                <option value="machine-op-inspct">Machine-Op-Inspct</option>
+                <option value="other-service">Other Service</option>
+                <option value="priv-house-serv">Priv-House-Serv</option>
+                <option value="prof-specialty">Prof-Specialty</option>
+                <option value="protective-serv">Protective-Serv</option>
+                <option value="sales">Sales</option>
+                <option value="tech-support">Tech Support</option>
+                <option value="transport-moving">Transport-Moving</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Relationship</label>
+              <select name="insured_relationship" required>
+                <option value="husband" selected>Husband</option>
+                <option value="not-in-family">Not in Family</option>
+                <option value="other-relative">Other Relative</option>
+                <option value="own-child">Own Child</option>
+                <option value="unmarried">Unmarried</option>
+                <option value="wife">Wife</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Capital Gains ($)</label>
+              <input type="number" name="capital_gains" value="0" required />
+            </div>
+          </div>
+        </div>
+
+        <!-- Incident Details -->
+        <div class="form-card">
+          <div class="section-header">
+            <div
+              class="section-dot"
+              style="background: #f5a623; box-shadow: 0 0 8px #f5a623"
+            ></div>
+            <div class="section-title">Incident Details</div>
+            <div class="section-count">8 fields</div>
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Capital Loss ($)</label>
+              <input type="number" name="capital_loss" value="0" required />
+            </div>
+            <div class="field">
+              <label>Incident Hour (0–23)</label>
+              <input
+                type="number"
+                name="incident_hour"
+                min="0"
+                max="23"
+                value="14"
+                required
+              />
+            </div>
+            <div class="field">
+              <label>Incident Type</label>
+              <select name="incident_type" required>
+                <option value="Multi-vehicle Collision" selected>
+                  Multi-vehicle Collision
+                </option>
+                <option value="Parked Car">Parked Car</option>
+                <option value="Single Vehicle Collision">
+                  Single Vehicle Collision
+                </option>
+                <option value="Vehicle Theft">Vehicle Theft</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Collision Type</label>
+              <select name="collision_type" required>
+                <option value="Front Collision" selected>
+                  Front Collision
+                </option>
+                <option value="Rear Collision">Rear Collision</option>
+                <option value="Side Collision">Side Collision</option>
+                <option value="?">Not Applicable</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Incident Severity</label>
+              <select name="incident_severity" required>
+                <option value="Major Damage">Major Damage</option>
+                <option value="Minor Damage" selected>Minor Damage</option>
+                <option value="Total Loss">Total Loss</option>
+                <option value="Trivial Damage">Trivial Damage</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Authorities Contacted</label>
+              <select name="authorities_contacted" required>
+                <option value="Ambulance">Ambulance</option>
+                <option value="Fire">Fire</option>
+                <option value="None">None</option>
+                <option value="Other">Other</option>
+                <option value="Police" selected>Police</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Num. Vehicles Involved</label>
+              <input
+                type="number"
+                name="num_vehicles"
+                min="1"
+                max="4"
+                value="1"
+                required
+              />
+            </div>
+            <div class="field">
+              <label>Property Damage</label>
+              <select name="property_damage" required>
+                <option value="YES" selected>Yes</option>
+                <option value="NO">No</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Claim & Reports -->
+        <div class="form-card">
+          <div class="section-header">
+            <div
+              class="section-dot"
+              style="background: #ff4d6d; box-shadow: 0 0 8px #ff4d6d"
+            ></div>
+            <div class="section-title">Claim & Reports</div>
+            <div class="section-count">7 fields</div>
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Bodily Injuries</label>
+              <input
+                type="number"
+                name="bodily_injuries"
+                min="0"
+                max="2"
+                value="0"
+                required
+              />
+            </div>
+            <div class="field">
+              <label>Witnesses</label>
+              <input
+                type="number"
+                name="witnesses"
+                min="0"
+                max="3"
+                value="1"
+                required
+              />
+            </div>
+            <div class="field">
+              <label>Police Report Available</label>
+              <select name="police_report_available" required>
+                <option value="YES" selected>Yes</option>
+                <option value="NO">No</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Injury Claim ($)</label>
+              <input type="number" name="injury_claim" value="5000" required />
+            </div>
+            <div class="field">
+              <label>Property Claim ($)</label>
+              <input
+                type="number"
+                name="property_claim"
+                value="3000"
+                required
+              />
+            </div>
+            <div class="field">
+              <label>Vehicle Claim ($)</label>
+              <input
+                type="number"
+                name="vehicle_claim"
+                value="15000"
+                required
+              />
+            </div>
+            <div class="field">
+              <label>Total Claim Amount ($)</label>
+              <input
+                type="number"
+                name="total_claim_amount"
+                value="23000"
+                required
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="analyze-wrap">
+          <button type="submit" class="btn-analyze" id="submit-btn">
+            ⚡ Analyze Claim
+          </button>
+          <div class="loading" id="loading">
+            <div class="spinner"></div>
+            Running inference...
+          </div>
+          <div class="error-msg" id="error-msg"></div>
+        </div>
+      </form>
+
+      <!-- Result Panel -->
+      <div id="result-panel">
+        <div class="result-card" id="result-card">
+          <div class="result-header" id="result-header">
+            <div class="result-icon" id="result-icon"></div>
+            <div>
+              <div class="result-verdict" id="result-verdict"></div>
+              <div class="result-sub" id="result-sub"></div>
+            </div>
+          </div>
+          <div class="result-metrics">
+            <div class="metric-box">
+              <div class="metric-label">Fraud Risk Score</div>
+              <div class="metric-value" id="fraud-score-val">—</div>
+              <div class="gauge-bar">
+                <div
+                  class="gauge-fill"
+                  id="fraud-gauge"
+                  style="width: 0%"
+                ></div>
+              </div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-label">Model Confidence</div>
+              <div class="metric-value neutral" id="confidence-val">—</div>
+              <div class="gauge-bar">
+                <div
+                  class="gauge-fill legit"
+                  id="conf-gauge"
+                  style="width: 0%"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <div class="container">
+        FraudSentinel · Logistic Regression Model · For investigative use only —
+        not a legal determination
+      </div>
+    </footer>
+
+    <script>
+      document
+        .getElementById("fraud-form")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const btn = document.getElementById("submit-btn");
+          const loading = document.getElementById("loading");
+          const errorMsg = document.getElementById("error-msg");
+          const resultPanel = document.getElementById("result-panel");
+
+          // Reset
+          btn.disabled = true;
+          loading.classList.add("active");
+          errorMsg.classList.remove("visible");
+          resultPanel.classList.remove("visible");
+
+          // Collect form data
+          const fd = new FormData(e.target);
+          const data = Object.fromEntries(fd.entries());
+
+          try {
+            const res = await fetch("/predict", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(data),
+            });
+
+            const result = await res.json();
+
+            if (!result.success)
+              throw new Error(result.error || "Unknown error");
+
+            // Populate results
+            const isFraud = result.is_fraud;
+            const score = result.fraud_score;
+            const confidence = result.confidence;
+
+            document.getElementById("result-header").className =
+              "result-header " + (isFraud ? "fraud" : "legit");
+            document.getElementById("result-icon").className =
+              "result-icon " + (isFraud ? "fraud" : "legit");
+            document.getElementById("result-icon").textContent = isFraud
+              ? "⚠️"
+              : "✅";
+            document.getElementById("result-verdict").className =
+              "result-verdict " + (isFraud ? "fraud" : "legit");
+            document.getElementById("result-verdict").textContent =
+              result.prediction;
+            document.getElementById("result-sub").textContent = isFraud
+              ? "This claim exhibits patterns consistent with fraudulent activity."
+              : "This claim appears consistent with legitimate insurance activity.";
+
+            document.getElementById("fraud-score-val").className =
+              "metric-value " + (isFraud ? "fraud" : "legit");
+            document.getElementById("fraud-score-val").textContent =
+              score.toFixed(1) + "%";
+            document.getElementById("fraud-gauge").className =
+              "gauge-fill " + (isFraud ? "fraud" : "legit");
+            setTimeout(() => {
+              document.getElementById("fraud-gauge").style.width = score + "%";
+              document.getElementById("conf-gauge").style.width =
+                confidence + "%";
+            }, 100);
+
+            document.getElementById("confidence-val").textContent =
+              confidence.toFixed(1) + "%";
+
+            resultPanel.classList.add("visible");
+            resultPanel.scrollIntoView({
+              behavior: "smooth",
+              block: "nearest",
+            });
+          } catch (err) {
+            errorMsg.textContent = "❌ Error: " + err.message;
+            errorMsg.classList.add("visible");
+          } finally {
+            btn.disabled = false;
+            loading.classList.remove("active");
+          }
+        });
+    </script>
+  </body>
+</html>
